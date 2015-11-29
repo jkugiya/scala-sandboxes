@@ -14,7 +14,7 @@ lazy val commonSettings = Seq(
   "com.typesafe.akka" % "akka-http-core-experimental_2.11" % "2.0-M1",
   "com.typesafe.akka" % "akka-http-experimental_2.11" % "2.0-M1",
   "com.google.inject" % "guice" % "4.0",
-  "org.anormcypher" %% "anormcypher" % "0.8.0",
+  "org.anormcypher" %% "anormcypher" % "0.8.x",
   "io.spray" %%  "spray-json" % "1.3.2",
   "org.mockito" % "mockito-core" % "1.10.19" % "test",
   "org.scalatest" %% "scalatest" % "2.2.4" % "test"))
