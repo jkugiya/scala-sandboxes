@@ -1,7 +1,7 @@
-package jkugiya.nom.models
+package jkugiya.nom.models.entity
 
-import jkugiya.nom.utils.neo4j.{Nom, Connection}
-import org.anormcypher.{CypherRow, Cypher}
+import jkugiya.nom.utils.neo4j.{Connection, Nom}
+import org.anormcypher.{Cypher, CypherRow}
 
 case class Customer(id: Long, name: String, email: String, tel: String, address: String, comment: String)
 
@@ -20,6 +20,14 @@ object Customer {
 
 trait CustomerDAO {
 
+  // TODO どこかにラベルの初期化を書く。(制約とか)
+
+  /**
+    * 検索する
+    * @param word 検索条件
+    * @param connection -
+    * @return 検索結果
+    */
   def search(word: String)(implicit connection: Connection[Nom]): Seq[Customer] = {
     val query = Cypher(
       """
@@ -34,6 +42,12 @@ trait CustomerDAO {
     query.apply().map(Customer.apply).toSeq
   }
 
+  /**
+    * ID検索
+    * @param id -
+    * @param connection -
+    * @return 検索結果
+    */
   def searchBy(id: Long)(implicit connection: Connection[Nom]): Option[Customer] = {
     Cypher(
       """
@@ -46,6 +60,11 @@ trait CustomerDAO {
       .headOption.map(Customer.apply)
   }
 
+  /**
+    * 顧客を作成する。
+    * @param customer 顧客
+    * @param connection -
+    */
   def create(customer: Customer)(implicit connection: Connection[Nom]): Unit = {
     Cypher(
       """
@@ -69,7 +88,12 @@ trait CustomerDAO {
       .apply()
   }
 
-  def update(customer: Customer)(implicit con: Connection[Nom]): Unit = {
+  /**
+    * 顧客を更新する。
+    * @param customer 顧客
+    * @param connection -
+    */
+  def update(customer: Customer)(implicit connection: Connection[Nom]): Unit = {
     Cypher(
       """
         |MATCH (c: Customer { id: {id} })
@@ -90,7 +114,12 @@ trait CustomerDAO {
       .apply()
   }
 
-  def remove(customer: Customer)(implicit con: Connection[Nom]): Unit = {
+  /**
+    * 顧客を削除する
+    * @param customer
+    * @param connection
+    */
+  def remove(customer: Customer)(implicit connection: Connection[Nom]): Unit = {
     Cypher(
       """
         |MATCH (p:Customer { id: {id} })
@@ -101,4 +130,7 @@ trait CustomerDAO {
   }
 }
 
+object CustomerDAO {
 
+}
+class CustomerDAOImpl extends CustomerDAO

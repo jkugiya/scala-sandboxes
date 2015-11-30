@@ -1,11 +1,12 @@
 package jkugiya.nom.utils
 
-import com.google.inject.{AbstractModule, Singleton}
+import com.google.inject.{Injector, AbstractModule, Singleton}
 import jkugiya.nom.utils.neo4j.{ConnectionImpl, Nom, Connection}
 import org.anormcypher.Neo4jREST
 import play.api.libs.ws._
 
-trait NomModule extends AbstractModule
+trait NomModule extends AbstractModule {
+}
 
 object NomModule {
   implicit lazy val module: NomModule = new NomModule {
@@ -24,4 +25,5 @@ object NomModule {
       bind(classOf[Connection[Nom]]).toInstance(new ConnectionImpl[Nom](connection, ec, ws))
     }
   }
+
 }

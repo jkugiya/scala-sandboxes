@@ -1,0 +1,21 @@
+import com.typesafe.config._
+import play.api.libs.ws._
+import jkugiya.nom.utils.neo4j._
+val config = ConfigFactory.load()
+import com.google.inject.AbstractModule;
+import com.google.inject.Guice;
+import com.google.inject.Inject;
+import com.google.inject.Injector;
+import jkugiya.nom.utils.NomModule
+val injector = Guice.createInjector(NomModule.module)
+implicit val connection = injector.getInstance(classOf[jkugiya.nom.utils.neo4j.Connection[jkugiya.nom.utils.neo4j.Nom]])
+import jkugiya.nom.models._
+import org.anormcypher._
+object DAO extends CustomerDAO
+DAO.search("mail")(connection)
+val wsClient = connection.underlyingClient
+
+val customer = Customer(1, "name", "email", "tel", "address", "comment")
+
+DAO.create(customer)(connection)
+
