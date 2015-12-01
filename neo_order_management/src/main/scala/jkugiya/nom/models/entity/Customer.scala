@@ -1,11 +1,14 @@
 package jkugiya.nom.models.entity
 
 import jkugiya.nom.utils.neo4j.{Connection, Nom}
-import org.anormcypher.{Cypher, CypherRow}
+import org.anormcypher._
+import org.anormcypher.CypherParser._
 
-case class Customer(id: Long, name: String, email: String, tel: String, address: String, comment: String)
+case class Customer(id: Long, name: String, email: String, tel: String, address: String, comment: String) {
+}
 
-object Customer {
+
+trait CustomerOps {
 
   // TODO to ResultSetParser
   def apply(row: CypherRow): Customer = Customer(
@@ -17,6 +20,12 @@ object Customer {
     comment = row[String]("c.comment")
   )
 
+  def apply(name: String, email: String, tel: String, address: String, comment: String)(implicit connection: Connection[Nom]): Customer = {
+    val dao = implicitly[CustomerDAO]
+    val id = dao.createID()
+    Customer(id, name, email, tel, address, comment)
+  }
+
   // TODO validation
   /*
   {{
@@ -27,11 +36,21 @@ object Customer {
 
 }
 
+object Customer extends CustomerOps
 
 
 trait CustomerDAO {
 
   // TODO どこかにラベルの初期化を書く。(制約とか)
+
+  def createID()(implicit connection: Connection[Nom]): Long = {
+    Cypher("""
+    |MERGE (id: UniqueId { name: 'Customer' })
+    |ON CREATE SET id.count = 1
+    |ON MATCH SET id.count = id.count + 1
+    |WITH id.count AS uid""".stripMargin)
+    .single(scalar[Long])
+  }
 
   /**
     * 検索する
@@ -142,6 +161,7 @@ trait CustomerDAO {
 }
 
 object CustomerDAO {
-
+  implicit val dao: CustomerDAO = CustomerDAOImpl
 }
-class CustomerDAOImpl extends CustomerDAO
+
+private object CustomerDAOImpl extends CustomerDAO
