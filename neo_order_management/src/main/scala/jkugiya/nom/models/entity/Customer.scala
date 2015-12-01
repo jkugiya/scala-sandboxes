@@ -6,6 +6,8 @@ import org.anormcypher.{Cypher, CypherRow}
 case class Customer(id: Long, name: String, email: String, tel: String, address: String, comment: String)
 
 object Customer {
+
+  // TODO to ResultSetParser
   def apply(row: CypherRow): Customer = Customer(
     id = row[Long]("c.id"),
     name = row[String]("c.name"),
@@ -14,6 +16,15 @@ object Customer {
     address = row[String]("c.address"),
     comment = row[String]("c.comment")
   )
+
+  // TODO validation
+  /*
+  {{
+  val result: Either[Errors, Customer] = isIdValid & isNameValid & is EmailValid ...
+  for (customer <- result) { customerDAO.register(customer) }
+  }}
+   */
+
 }
 
 
@@ -116,16 +127,16 @@ trait CustomerDAO {
 
   /**
     * 顧客を削除する
-    * @param customer
-    * @param connection
+    * @param id -
+    * @param connection -
     */
-  def remove(customer: Customer)(implicit connection: Connection[Nom]): Unit = {
+  def remove(id: Long)(implicit connection: Connection[Nom]): Unit = {
     Cypher(
       """
         |MATCH (p:Customer { id: {id} })
         |DELETE p
       """.stripMargin)
-    .on("id" -> customer.id)
+    .on("id" -> id)
     .apply()
   }
 }
