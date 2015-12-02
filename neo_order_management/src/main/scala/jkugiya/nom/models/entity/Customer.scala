@@ -2,13 +2,12 @@ package jkugiya.nom.models.entity
 
 import jkugiya.nom.utils.neo4j.{Connection, Nom}
 import org.anormcypher._
-import org.anormcypher.CypherParser._
 
-case class Customer(id: Long, name: String, email: String, tel: String, address: String, comment: String) {
-}
-
+case class Customer(id: Long, name: String, email: String, tel: String, address: String, comment: String)
 
 trait CustomerOps {
+
+  private[entity] implicit val connection = implicitly[Connection[Nom]]
 
   // TODO to ResultSetParser
   def apply(row: CypherRow): Customer = Customer(
@@ -20,17 +19,12 @@ trait CustomerOps {
     comment = row[String]("c.comment")
   )
 
-  def apply(name: String, email: String, tel: String, address: String, comment: String)(implicit connection: Connection[Nom]): Customer = {
-    val dao = implicitly[CustomerDAO]
-    val id = dao.createID()
-    Customer(id, name, email, tel, address, comment)
-  }
 
   // TODO validation
   /*
   {{
   val result: Either[Errors, Customer] = isIdValid & isNameValid & is EmailValid ...
-  for (customer <- result) { customerDAO.register(customer) }
+  for (customer <- result) { CustomerRepository.register(customer) }
   }}
    */
 
@@ -38,130 +32,3 @@ trait CustomerOps {
 
 object Customer extends CustomerOps
 
-
-trait CustomerDAO {
-
-  // TODO どこかにラベルの初期化を書く。(制約とか)
-
-  def createID()(implicit connection: Connection[Nom]): Long = {
-    Cypher("""
-    |MERGE (id: UniqueId { name: 'Customer' })
-    |ON CREATE SET id.count = 1
-    |ON MATCH SET id.count = id.count + 1
-    |WITH id.count AS uid""".stripMargin)
-    .single(scalar[Long])
-  }
-
-  /**
-    * 検索する
-    * @param word 検索条件
-    * @param connection -
-    * @return 検索結果
-    */
-  def search(word: String)(implicit connection: Connection[Nom]): Seq[Customer] = {
-    val query = Cypher(
-      """
-        | MATCH (c: Customer)
-        | WHERE c.name =~ {wordExpression}
-        | OR    c.email =~ {wordExpression}
-        | OR    c.tel =~ {wordExpression}
-        | OR    c.address =~ {wordExpression}
-        | OR    c.comment =~ {wordExpression}
-        | RETURN c.id, c.name, c.email, c.tel, c.address, c.comment
-      """.stripMargin).on("wordExpression" -> s".*${word}.*")
-    query.apply().map(Customer.apply).toSeq
-  }
-
-  /**
-    * ID検索
-    * @param id -
-    * @param connection -
-    * @return 検索結果
-    */
-  def searchBy(id: Long)(implicit connection: Connection[Nom]): Option[Customer] = {
-    Cypher(
-      """
-        | MATCH (c: Customer)
-        | WHERE c.id = {id}
-        | RETURN c.id, c.name, c.email, c.tel, c.address, c.comment
-      """.stripMargin)
-      .on("id" -> id)
-      .apply()
-      .headOption.map(Customer.apply)
-  }
-
-  /**
-    * 顧客を作成する。
-    * @param customer 顧客
-    * @param connection -
-    */
-  def create(customer: Customer)(implicit connection: Connection[Nom]): Unit = {
-    Cypher(
-      """
-        |MERGE (id: UniqueId { name: 'Customer' })
-        |ON CREATE SET id.count = 1
-        |ON MATCH SET id.count = id.count + 1
-        |WITH id.count AS uid
-        |
-        |CREATE (c: Customer
-        |{id: uid,
-        | name: {name},
-        | email: {email},
-        | tel: {tel},
-        | address: {address},
-        | comment: {comment} }) return c.id""".stripMargin)
-      .on("name" -> customer.name,
-        "email" -> customer.email,
-        "tel" -> customer.tel,
-        "address" -> customer.address,
-        "comment" -> customer.comment)
-      .apply()
-  }
-
-  /**
-    * 顧客を更新する。
-    * @param customer 顧客
-    * @param connection -
-    */
-  def update(customer: Customer)(implicit connection: Connection[Nom]): Unit = {
-    Cypher(
-      """
-        |MATCH (c: Customer { id: {id} })
-        |SET
-        |  c.name = {name},
-        |  c.email = {email},
-        |  c.tel = {tel},
-        |  c.address = {address},
-        |  c.comment = {comment}
-        |RETURN c.id, c.name, c.email, c.tel, c.address, c.comment
-      """.stripMargin)
-      .on("id" -> customer.id,
-        "name" -> customer.name,
-        "email" -> customer.email,
-        "tel" -> customer.tel,
-        "address" -> customer.address,
-        "comment" -> customer.comment)
-      .apply()
-  }
-
-  /**
-    * 顧客を削除する
-    * @param id -
-    * @param connection -
-    */
-  def remove(id: Long)(implicit connection: Connection[Nom]): Unit = {
-    Cypher(
-      """
-        |MATCH (p:Customer { id: {id} })
-        |DELETE p
-      """.stripMargin)
-    .on("id" -> id)
-    .apply()
-  }
-}
-
-object CustomerDAO {
-  implicit val dao: CustomerDAO = CustomerDAOImpl
-}
-
-private object CustomerDAOImpl extends CustomerDAO

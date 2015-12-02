@@ -11,7 +11,7 @@ val injector = Guice.createInjector(NomModule.module)
 implicit val connection = injector.getInstance(classOf[jkugiya.nom.utils.neo4j.Connection[jkugiya.nom.utils.neo4j.Nom]])
 import jkugiya.nom.models._
 import org.anormcypher._
-object DAO extends CustomerDAO
+object DAO extends CustomerRepository
 DAO.search("mail")(connection)
 val wsClient = connection.underlyingClient
 

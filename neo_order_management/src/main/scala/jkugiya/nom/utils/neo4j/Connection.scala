@@ -1,6 +1,7 @@
 package jkugiya.nom.utils.neo4j
 
 import com.google.inject.Inject
+import jkugiya.nom.utils.{Global, NomModule}
 import org.anormcypher.{CypherStatement, Cypher, Neo4jREST}
 import play.api.libs.ws.WSClient
 
@@ -15,6 +16,14 @@ trait Connection[A <: Namespace] {
   implicit val ec: ExecutionContext
   val underlyingClient: WSClient
 }
+
+object Connection {
+  implicit val nomCon: Connection[Nom] = {
+    val global = implicitly[Global]
+    global.injecor.getInstance(classOf[Connection[Nom]])
+  }
+}
+
 
 class ConnectionImpl[A <: Namespace] @Inject() (
                                                  val con: Neo4jREST,
