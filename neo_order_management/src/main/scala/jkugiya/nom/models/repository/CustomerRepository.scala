@@ -1,12 +1,11 @@
 package jkugiya.nom.models.repository
 
+import jkugiya.nom.models.dto.customer.RegisterCustomerDTO
 import jkugiya.nom.models.entity.Customer
 import jkugiya.nom.utils.neo4j.{Connection, Nom}
 import org.anormcypher.Cypher
 import org.anormcypher.CypherParser._
 trait CustomerRepository {
-
-  private[repository] implicit val connection = implicitly[Connection[Nom]]
 
   // TODO どこかにラベルの初期化を書く。(制約とか)
 
@@ -59,10 +58,10 @@ trait CustomerRepository {
 
   /**
     * 顧客を作成する。
-    * @param customer 顧客
+    * @param dto 顧客情報
     * @param connection -
     */
-  def create(customer: Customer)(implicit connection: Connection[Nom]): Unit = {
+  def create(dto: RegisterCustomerDTO)(implicit connection: Connection[Nom]): Unit = {
     Cypher(
       """
         |MERGE (id: UniqueId { name: 'Customer' })
@@ -77,11 +76,11 @@ trait CustomerRepository {
         | tel: {tel},
         | address: {address},
         | comment: {comment} }) return c.id""".stripMargin)
-      .on("name" -> customer.name,
-        "email" -> customer.email,
-        "tel" -> customer.tel,
-        "address" -> customer.address,
-        "comment" -> customer.comment)
+      .on("name" -> dto.name,
+        "email" -> dto.email,
+        "tel" -> dto.tel,
+        "address" -> dto.address,
+        "comment" -> dto.comment)
       .apply()
   }
 

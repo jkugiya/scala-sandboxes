@@ -24,7 +24,6 @@ object Connection {
   }
 }
 
-
 class ConnectionImpl[A <: Namespace] @Inject() (
                                                  val con: Neo4jREST,
                                                  val ec: ExecutionContext,
