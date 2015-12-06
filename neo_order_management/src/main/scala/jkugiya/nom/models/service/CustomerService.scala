@@ -1,10 +1,12 @@
 package jkugiya.nom.models.service
 
+import com.google.inject.Inject
 import jkugiya.nom.models.dto.{NotFoundError, NomError}
 import jkugiya.nom.models.dto.customer.{SearchCondition, UpdateCustomerDTO, RegisterCustomerDTO}
 import jkugiya.nom.models.entity.Customer
 import jkugiya.nom.models.repository.CustomerRepository
 import jkugiya.nom.models.service.infrastructure.UsesConnection
+import jkugiya.nom.utils.Global
 import jkugiya.nom.utils.neo4j.{Nom}
 
 
@@ -57,4 +59,8 @@ trait CustomerService extends UsesConnection[Nom] {
   def deleteCustomer(customerId: Long): Result[Unit] = withConnection { implicit con =>
     customerRepository.remove(customerId)
   }
+}
+
+class CustomerServiceImpl @Inject() (_customerRepository: CustomerRepository) extends CustomerService  {
+  override val customerRepository: CustomerRepository = _customerRepository
 }

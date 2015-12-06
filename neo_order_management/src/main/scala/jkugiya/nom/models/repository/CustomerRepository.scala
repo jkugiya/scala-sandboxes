@@ -126,8 +126,4 @@ trait CustomerRepository {
   }
 }
 
-object CustomerRepository {
-  implicit val dao: CustomerRepository = CustomerRepositoryImpl
-}
-
-private object CustomerRepositoryImpl extends CustomerRepository
+object CustomerRepositoryImpl extends CustomerRepository

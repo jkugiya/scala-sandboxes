@@ -1,6 +1,8 @@
 package jkugiya.nom.utils
 
-import com.google.inject.{Injector, AbstractModule, Singleton}
+import com.google.inject.{Scope, Injector, AbstractModule, Singleton}
+import jkugiya.nom.models.repository.{CustomerRepositoryImpl, CustomerRepository}
+import jkugiya.nom.models.service.{CustomerServiceImpl, CustomerService}
 import jkugiya.nom.utils.neo4j.{ConnectionImpl, Nom, Connection}
 import org.anormcypher.Neo4jREST
 import play.api.libs.ws._
@@ -23,6 +25,8 @@ object NomModule {
       )
       val ec = scala.concurrent.ExecutionContext.Implicits.global// TODO
       bind(classOf[Connection[Nom]]).toInstance(new ConnectionImpl[Nom](connection, ec, ws))
+      bind(classOf[CustomerRepository]).toInstance(CustomerRepositoryImpl)
+      bind(classOf[CustomerService]).to(classOf[CustomerServiceImpl]).in(classOf[Singleton])
     }
   }
 
