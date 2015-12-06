@@ -1,6 +1,6 @@
 package jkugiya.nom.models.repository
 
-import jkugiya.nom.models.dto.customer.RegisterCustomerDTO
+import jkugiya.nom.models.dto.customer.{UpdateCustomerDTO, RegisterCustomerDTO}
 import jkugiya.nom.models.entity.Customer
 import jkugiya.nom.utils.neo4j.{Connection, Nom}
 import org.anormcypher.Cypher
@@ -89,7 +89,7 @@ trait CustomerRepository {
     * @param customer 顧客
     * @param connection -
     */
-  def update(customer: Customer)(implicit connection: Connection[Nom]): Unit = {
+  def update(customer: UpdateCustomerDTO)(implicit connection: Connection[Nom]): Unit = {
     Cypher(
       """
         |MATCH (c: Customer { id: {id} })

@@ -5,8 +5,9 @@ import akka.event.LoggingAdapter
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
 import akka.stream.Materializer
-import jkugiya.nom.models.dto.customer.{RegisterCustomerDTO, UpdateCustomerDTO}
+import jkugiya.nom.models.dto.customer.{SearchCondition, RegisterCustomerDTO, UpdateCustomerDTO}
 import jkugiya.nom.models.repository.CustomerRepository
+import jkugiya.nom.models.service.CustomerService
 
 import scala.concurrent.ExecutionContextExecutor
 
@@ -16,7 +17,8 @@ trait CustomerController {
   implicit val materializer: Materializer
 
   implicit val version: Int
-  implicit val CustomerRepository: CustomerRepository
+
+  val customerService: CustomerService
 
   val logger:  LoggingAdapter
 
@@ -24,22 +26,23 @@ trait CustomerController {
     pathPrefix("customers") {
       pathEnd {
         get {
-          parameter('word) { word =>
-            val customers = CustomerRepository.search(word)
-            // todo render response
+          parameter('word).as(SearchCondition) { condition =>
+            val customers = customerService.search(condition)
             ???
           }
           // TODO wordが無かったらどうなる？
         }
         post {
-          parameter('name, 'email, 'tel, 'address, 'comment).as(RegisterCustomerDTO) { dto =>
+          parameter('name, 'email, 'tel, 'address, 'comment).as(RegisterCustomerDTO) { condition =>
+            customerService.register(condition)
             ???
           }
           // register
           ???
         }
         put {
-          parameter('id.as[Long], 'name, 'email, 'tel, 'address, 'comment).as(UpdateCustomerDTO) { dto =>
+          parameter('id.as[Long], 'name, 'email, 'tel, 'address, 'comment).as(UpdateCustomerDTO) { condition =>
+            customerService.update(condition)
             ???
           }
           // TODO update
@@ -52,15 +55,18 @@ trait CustomerController {
       } ~
       path(IntNumber) { id =>
         get {
-          parameter('id.as[Int]) { id =>
-            val customer = CustomerRepository.searchBy(id)
+          parameter('id.as[Long]) { customerId =>
+            val customer = customerService.findCustomer(customerId)
             // TODO render response
             ???
           }
         }
         delete {
-          // delete
-          ???
+          parameter('id.as[Long]) { customerId =>
+            customerService.deleteCustomer(customerId)
+            // TOOD render response
+            ???
+          }
         }
       }
     }
