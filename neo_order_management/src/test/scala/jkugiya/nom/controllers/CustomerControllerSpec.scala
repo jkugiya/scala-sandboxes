@@ -65,7 +65,7 @@ with MockitoSugar {
         "comment" -> "testComment"
       )
       val entity = Await.result(Marshal(FormData(params)).to[RequestEntity], Duration.Inf)
-      val req = Post("/customers?name=hoge").withEntity(entity)
+      val req = Post("/customers").withEntity(entity)
       req ~> controller.route ~> check {
         status should be (StatusCodes.OK)
         Mockito
@@ -73,7 +73,13 @@ with MockitoSugar {
           .register(m.anyObject())
       }
     }
-
+    scenario("/customers/create: Get") {
+      val controller =  new CustomerControllerStub(system)
+      val req = Get("/customers/create")
+      req ~> controller.route ~> check {
+        status should be (StatusCodes.OK)
+      }
+    }
   }
 
 

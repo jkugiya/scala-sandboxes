@@ -15,7 +15,7 @@
             <div class="row">
                 <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
                     <ul class="nav nav-pills nav-stacked">
-                        <li><a href="/customers/search">顧客情報一覧（検索/更新/削除）</a></li>
+                        <li><a href="/customers">顧客情報一覧（検索/更新/削除）</a></li>
                         <li><a href="/customers/create">顧客情報登録</a></li>
                     </ul>
                 </div>
@@ -33,9 +33,8 @@
 
                 <!-- フォーム -->
                 <div class="col-xs-12 col-sm-12 col-md-12 col-lg-12">
-                  <form id="createForm">
+                  <form id="createForm" method="POST" action="/customers">
                     <fieldset>
-                        <input type="hidden" name="id" value="0">
                         <input type="text" name="name" value="@customerForm.name">
                         <input type="text" name="email" value="@customerForm.email">
                         <input type="text" name="tel" value="@customerForm.tel">
@@ -44,7 +43,7 @@
                     </fieldset>
                     <div class="actions">
                         <input type="submit" class="btn btn-primary">
-                        <a href="/customers/search" class="btn btn-danger">キャンセル</a>
+                        <a href="/customers" class="btn btn-danger">キャンセル</a>
                     </div>
                   </form>
                 </div>
