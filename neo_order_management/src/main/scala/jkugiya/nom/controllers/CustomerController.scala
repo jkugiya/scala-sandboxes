@@ -2,6 +2,7 @@ package jkugiya.nom.controllers
 
 import akka.actor.ActorSystem
 import akka.event.LoggingAdapter
+import akka.http.scaladsl.model.StatusCodes.Redirection
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
@@ -35,6 +36,7 @@ trait CustomerController {
 
   // TODO 全体的にEitherを使ったエラー処理
   // TODO POSTやPUT表示しているところはRedirectにする
+  // TODO ホットデプロイ的なことできないのか？
   /**
     * GET    /customers?word=xxx                  検索  => 検索結果一覧(customerSearch)
     * GET    /customers/create                         => 登録画面
@@ -59,7 +61,7 @@ trait CustomerController {
             // 言語がエンハンスされることを期待、とのこと。
             formFields('name, 'email, 'tel, 'address, 'comment).as((RegisterCustomerDTO.apply _)) { condition =>
               customerService.register(condition)
-              completeAsHtml(views.html.customerSearch("", Nil).body)
+              redirect("/customers", StatusCodes.MovedPermanently)
             }
           }
       } ~
@@ -77,13 +79,13 @@ trait CustomerController {
           (put | parameter('method ! "put")) {
             formFields('id ? customerId, 'name, 'email, 'tel, 'address, 'comment).as(UpdateCustomerDTO) { condition =>
               customerService.update(condition)
-              completeAsHtml(views.html.customerSearch("", Nil).body)
+              redirect("/customers", StatusCodes.MovedPermanently)
             }
           } ~
-          (delete | parameter('method ! "delete")) {
-            customerService.deleteCustomer(customerId)
-            completeAsHtml(views.html.customerSearch("", Nil).body)
-          } ~
+            (delete | parameter('method ! "delete")) {
+              customerService.deleteCustomer(customerId)
+              redirect("/customers", StatusCodes.MovedPermanently)
+            } ~
             get {
               val result = customerService.findCustomer(customerId)
               val dto = mappers.map[Customer, UpdateCustomerDTO](result.right.get) // TODO エレガントに
