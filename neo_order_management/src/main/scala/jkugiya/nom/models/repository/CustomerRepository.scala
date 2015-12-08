@@ -61,7 +61,7 @@ trait CustomerRepository {
     * @param dto 顧客情報
     * @param connection -
     */
-  def create(dto: RegisterCustomerDTO)(implicit connection: Connection[Nom]): Unit = {
+  def create(dto: RegisterCustomerDTO)(implicit connection: Connection[Nom]): Customer = {
     Cypher(
       """
         |MERGE (id: UniqueId { name: 'Customer' })
@@ -75,13 +75,14 @@ trait CustomerRepository {
         | email: {email},
         | tel: {tel},
         | address: {address},
-        | comment: {comment} }) return c.id""".stripMargin)
+        | comment: {comment} }) return c.id, c.name, c.email, c.tel, c.address, c.comment""".stripMargin)
       .on("name" -> dto.name,
         "email" -> dto.email,
         "tel" -> dto.tel,
         "address" -> dto.address,
         "comment" -> dto.comment)
       .apply()
+      .map(Customer.apply).head
   }
 
   /**
@@ -89,7 +90,7 @@ trait CustomerRepository {
     * @param customer 顧客
     * @param connection -
     */
-  def update(customer: UpdateCustomerDTO)(implicit connection: Connection[Nom]): Unit = {
+  def update(customer: UpdateCustomerDTO)(implicit connection: Connection[Nom]): Option[Customer] = {
     Cypher(
       """
         |MATCH (c: Customer { id: {id} })
@@ -108,6 +109,7 @@ trait CustomerRepository {
         "address" -> customer.address,
         "comment" -> customer.comment)
       .apply()
+      .map(Customer.apply).headOption
   }
 
   /**
