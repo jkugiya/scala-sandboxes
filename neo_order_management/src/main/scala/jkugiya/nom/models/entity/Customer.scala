@@ -3,6 +3,9 @@ package jkugiya.nom.models.entity
 import jkugiya.nom.utils.neo4j.{Connection, Nom}
 import org.anormcypher._
 
+// packageをentityとしたが、Actorのメッセージに使っているので、外部リソースに接続するような処理はかけない。
+// そのような処理が必要な場合はdtoに親クラスを作るなどのリファクタリングが必要
+
 case class Customer(id: Long, name: String, email: String, tel: String, address: String, comment: String)
 
 trait CustomerOps {
