@@ -13,7 +13,7 @@ case class ValidationError(val objectName: String,
 }
 
 object ValidationErrors {
-  implicit def toErrors(failure: ValidationError): ValidationErrors = ValidationErrors(Seq(failure))
+  implicit def toErrors(error: ValidationError): ValidationErrors = ValidationErrors(Seq(error))
 }
 
-case class ValidationErrors(failures: Seq[ValidationError])
+case class ValidationErrors(errors: Seq[ValidationError])

@@ -10,5 +10,5 @@ case class NotFoundError(objectName: String) extends NomError {
 
 abstract case class NomFault(message: String, cause: Throwable) extends NomError
 
-class UnexpectedError(t: Throwable) extends NomFault("Unexpected error occured.", t)
+class UnexpectedError(t: Throwable) extends NomFault("Unexpected error occurred.", t)
 

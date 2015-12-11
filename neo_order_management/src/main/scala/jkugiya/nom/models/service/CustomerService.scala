@@ -1,26 +1,37 @@
 package jkugiya.nom.models.service
 
-import com.google.inject.Inject
-import jkugiya.nom.models.dto.{NotFoundError, NomError}
-import jkugiya.nom.models.dto.customer.{SearchCondition, UpdateCustomerDTO, RegisterCustomerDTO}
+import akka.actor.{ActorRef, ActorSystem}
+import akka.pattern.ask
+import akka.util.Timeout
+import jkugiya.nom.models.dto.customer.{RegisterCustomerDTO, SearchCondition, UpdateCustomerDTO}
+import jkugiya.nom.models.dto.{NotFoundError, UnexpectedError}
 import jkugiya.nom.models.entity.Customer
-import jkugiya.nom.models.repository.CustomerRepository
+import jkugiya.nom.models.service.CustomerStorage.ProcessResult
 import jkugiya.nom.models.service.infrastructure.UsesConnection
-import jkugiya.nom.utils.Global
-import jkugiya.nom.utils.neo4j.{Nom}
+import jkugiya.nom.utils.neo4j.Nom
 
+import scala.concurrent.duration.Duration
+import scala.concurrent.{ExecutionContext, Await, Future}
 
+// TODO 全体的にFutureをAPIにしたい
 trait CustomerService extends UsesConnection[Nom] {
-  val customerRepository: CustomerRepository
+  val customerStorageGateway: ActorRef
+  val customerStorageCache: ActorRef
+  implicit val timeout: Timeout
+  implicit val ec: ExecutionContext
 
   /**
     * 顧客を登録する
     * @param condition 登録情報
     * @return 登録結果
     */
-  def register(condition: RegisterCustomerDTO): Result[Unit] = withConnection { implicit con =>
-    customerRepository.create(condition)
+  def register(condition: RegisterCustomerDTO): Result[Unit] = withConnectionE { implicit con =>
+    val future = (customerStorageGateway ? CustomerStorage.Register(condition))
+      .map(_ => Right(()))
+      .recover({case t: Throwable => Left(new UnexpectedError(t))})
+    Await.result(future, Duration.Inf)
   }
+
 
   /**
     * IDを指定して顧客を検索する
@@ -28,10 +39,16 @@ trait CustomerService extends UsesConnection[Nom] {
     * @return 顧客
     */
   def findCustomer(customerId: Long): Result[Customer] =  {
-    val result = withConnection { implicit con =>
-      customerRepository.searchBy(customerId)
+    withConnectionE { implicit con =>
+      val future = (customerStorageCache ? CustomerStorage.FindOne(customerId))
+        .mapTo[ProcessResult]// TODO 多分できない
+        .map(_ match {
+          case CustomerStorage.FindOneResult(customer) =>
+            customer.map(Right(_)).getOrElse(Left(NotFoundError("customer")))
+        })
+        .recover({case t: Throwable => Left(new UnexpectedError(t))})
+      Await.result(future, Duration.Inf)
     }
-    validateExists(result, "customer")
   }
 
   /**
@@ -39,8 +56,11 @@ trait CustomerService extends UsesConnection[Nom] {
     * @param condition 顧客情報
     * @return 更新結果
     */
-  def update(condition: UpdateCustomerDTO): Result[Unit] = withConnection { implicit con =>
-    customerRepository.update(condition)
+  def update(condition: UpdateCustomerDTO): Result[Unit] = withConnectionE { implicit con =>
+    val future = (customerStorageCache ? CustomerStorage.Update(condition))
+      .map(_ => Right(()))
+      .recover({case t: Throwable => Left(new UnexpectedError(t))})
+    Await.result(future, Duration.Inf)
   }
 
   /**
@@ -48,19 +68,32 @@ trait CustomerService extends UsesConnection[Nom] {
     * @param condition
     * @return 検索結果
     */
-  def search(condition: SearchCondition): Result[Seq[Customer]] = withConnection { implicit con =>
-    customerRepository.search(condition.word)
+  def search(condition: SearchCondition): Result[Seq[Customer]] = withConnectionE { implicit con =>
+    val future: Future[Result[Seq[Customer]]] = (customerStorageCache ? CustomerStorage.FindBy(condition))
+      .mapTo[CustomerStorage.FindResult]
+      .map(fr => Right(fr.result))
+      .recover({case t: Throwable => Left(new UnexpectedError(t))})
+    Await.result(future, Duration.Inf)
   }
 
   /**
     * 顧客情報を削除する
     * @param customerId -
     */
-  def deleteCustomer(customerId: Long): Result[Unit] = withConnection { implicit con =>
-    customerRepository.remove(customerId)
+  def deleteCustomer(customerId: Long): Result[Unit] = withConnectionE { implicit con =>
+    val future = (customerStorageCache ? CustomerStorage.Delete(customerId))
+      .map(_ => Right(()))
+      .recover({case t: Throwable => Left(new UnexpectedError(t))})
+    Await.result(future, Duration.Inf)
   }
 }
 
-class CustomerServiceImpl @Inject() (_customerRepository: CustomerRepository) extends CustomerService  {
-  override val customerRepository: CustomerRepository = _customerRepository
+class CustomerServiceImpl (actorSystem: ActorSystem) extends CustomerService  {
+  lazy val customerStorageGateway =
+    Await.result(actorSystem.actorSelection("/customerStorage/gateway").resolveOne(), Duration.Inf)
+ lazy val customerStorageCache =
+   Await.result(actorSystem.actorSelection("/customerStorage/cache").resolveOne(), Duration.Inf)
+  import scala.concurrent.duration._
+  override implicit val timeout: Timeout = 3.seconds// TODO DI
+  override implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global// TODO FIX
 }

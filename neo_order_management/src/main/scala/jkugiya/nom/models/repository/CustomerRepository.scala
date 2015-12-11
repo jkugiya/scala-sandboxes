@@ -9,7 +9,7 @@ trait CustomerRepository {
 
   // TODO どこかにラベルの初期化を書く。(制約とか)
 
-  def createID()(implicit connection: Connection[Nom]): Long = {
+  private[repository] def createID()(implicit connection: Connection[Nom]): Long = {
     Cypher("""
              |MERGE (id: UniqueId { name: 'Customer' })
              |ON CREATE SET id.count = 1

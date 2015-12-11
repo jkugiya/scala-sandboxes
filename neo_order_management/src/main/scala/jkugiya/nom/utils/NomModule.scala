@@ -1,6 +1,8 @@
 package jkugiya.nom.utils
 
+import akka.actor.ActorSystem
 import com.google.inject.{Scope, Injector, AbstractModule, Singleton}
+import jkugiya.nom.controllers.{CustomerControllerImpl, CustomerController}
 import jkugiya.nom.models.repository.{CustomerRepositoryImpl, CustomerRepository}
 import jkugiya.nom.models.service.{CustomerServiceImpl, CustomerService}
 import jkugiya.nom.utils.neo4j.{ConnectionImpl, Nom, Connection}
@@ -23,10 +25,24 @@ object NomModule {
         username = config.getString("nom.neo4j.username"),
         password = config.getString("nom.neo4j.password")
       )
-      val ec = scala.concurrent.ExecutionContext.Implicits.global// TODO
-      bind(classOf[Connection[Nom]]).toInstance(new ConnectionImpl[Nom](connection, ec, ws))
+
+      val actorSystem = ActorSystem("nom_order_management")
+      bind(classOf[ActorSystem]).toInstance(actorSystem)
+
+      val databaseExecutionContext = scala.concurrent.ExecutionContext.Implicits.global// TODO
+      bind(classOf[Connection[Nom]]).toInstance(new ConnectionImpl[Nom](connection, databaseExecutionContext, ws))
+
       bind(classOf[CustomerRepository]).toInstance(CustomerRepositoryImpl)
-      bind(classOf[CustomerService]).to(classOf[CustomerServiceImpl]).in(classOf[Singleton])
+
+      // たまたまCustomerRepositoryImplがobjectで宣言可能だからよいが、依存性の複雑なクラスだったらキツい。
+      // Actorを使う場合、
+      bind(classOf[CustomerService])
+        .toInstance(new CustomerServiceImpl(
+          actorSystem
+        ))
+
+      val controllerExecutionContext = scala.concurrent.ExecutionContext.Implicits.global// TODO
+      bind(classOf[CustomerController]).toInstance(new CustomerControllerImpl(actorSystem, controllerExecutionContext))
     }
   }
 

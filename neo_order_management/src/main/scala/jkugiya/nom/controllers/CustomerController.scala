@@ -1,16 +1,18 @@
 package jkugiya.nom.controllers
 
 import akka.actor.ActorSystem
-import akka.event.LoggingAdapter
+import akka.event.{Logging, LoggingAdapter}
 import akka.http.scaladsl.model.StatusCodes.Redirection
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.Directives._
 import akka.http.scaladsl.server.Route
-import akka.stream.Materializer
+import akka.stream.{ActorMaterializer, Materializer}
+import com.google.inject.Inject
 import jkugiya.nom.models.entity.Customer
 import jkugiya.nom.models.{ConcreteMapper, Mappers}
 import jkugiya.nom.models.dto.customer.{RegisterCustomerDTO, SearchCondition, UpdateCustomerDTO}
 import jkugiya.nom.models.service.CustomerService
+import jkugiya.nom.utils.Global
 import jkugiya.nom.views
 
 import scala.concurrent.ExecutionContextExecutor
@@ -96,3 +98,10 @@ trait CustomerController {
   }
 }
 
+class CustomerControllerImpl @Inject()
+  (val actorSystem: ActorSystem,
+   val executor: ExecutionContextExecutor) extends CustomerController {
+  override implicit val materializer: Materializer = ActorMaterializer()(actorSystem)
+  override val logger: LoggingAdapter = Logging(actorSystem, getClass)
+  override lazy val customerService: CustomerService = implicitly[Global].injecor.getInstance(classOf[CustomerService])
+}

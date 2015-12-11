@@ -3,6 +3,8 @@ package jkugiya.nom.models
 import jkugiya.nom.models.dto.NomError
 import jkugiya.nom.utils.neo4j._
 
+import scala.concurrent.Future
+
 /**
   * Created by jkugi_000 on 2015/12/04.
   */
