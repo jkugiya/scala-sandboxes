@@ -8,9 +8,11 @@ import jkugiya.nom.models.entity.Customer
 import jkugiya.nom.models.repository.CustomerRepository
 import jkugiya.nom.models.service.CustomerStorage._
 import jkugiya.nom.models.service.infrastructure.UsesConnection
+import jkugiya.nom.utils.Global
 import jkugiya.nom.utils.neo4j.Nom
 
 import scala.collection.immutable
+import scala.concurrent.Await
 import scala.concurrent.duration._
 
 object CustomerStorage {
@@ -31,13 +33,17 @@ object CustomerStorage {
   case class FindOneResult(result: Option[Customer]) extends SuccessResult
   case object Ack extends SuccessResult
   case object Nack extends FailResult
+
+  def props() = Props(classOf[CustomerStorage])
 }
 
 // TODO クラスタ化
 class CustomerStorage extends Actor {
 
-  val writerGateway = context.actorOf(Props[CustomerStorageWriterGateway], "writerGateway")
+  val writerGateway = context.actorOf(Props[CustomerStorageWriterGateway], "writingGateway")
   val storageCache = context.actorOf(Props[CustomerStorageCache], "cache")
+  val persistentStorage = context.actorOf(Props[CustomerPersistentStorage], "persistentStorage")
+
   // supervisorとしてだけ振る舞う
   override def receive: Actor.Receive = Actor.emptyBehavior
 }
@@ -47,15 +53,16 @@ class CustomerStorage extends Actor {
   */
 class CustomerStorageWriterGateway extends Actor {
   import CustomerStorage._
-  val storage = context.actorOf(Props[CustomerPersistentStorage], "persistentStorage")
+  lazy val persistentStorage =
+    Await.result(context.actorSelection("/user/customerStorage/persistentStorage").resolveOne(3.seconds), Duration.Inf)
 
   // TODO PersistentStorageはエラーが起きやすいのでここでCircuitBreakerを設ける。
   override def receive: Actor.Receive = {
     case registerMsg: Register =>
-      storage ! registerMsg
+      persistentStorage ! registerMsg
       sender() ! Ack
     case updateMsg: Update =>
-      storage ! updateMsg
+      persistentStorage ! updateMsg
       sender() ! Ack
   }
 }
@@ -63,6 +70,13 @@ class CustomerStorageWriterGateway extends Actor {
 
 class CustomerStorageCache extends Actor {
   var cache: Seq[Customer] = Nil
+  lazy val persitentStorage = context.actorSelection("/user/customerStorage/persistentStorage")
+
+  {
+    import context.dispatcher
+    context.system.scheduler.scheduleOnce(2.seconds)(persitentStorage ! TelMe)
+  }
+
   override def receive: Actor.Receive = {
     case ThisIsAll(all) =>
       cache = all
@@ -71,11 +85,11 @@ class CustomerStorageCache extends Actor {
     case FindBy(condition) =>
       val word = condition.word
       val result = cache.filter { customer =>
-        customer.name.indexOf(word) > 0 ||
-        customer.email.indexOf(word) > 0 ||
-        customer.tel.indexOf(word) > 0 ||
-        customer.address.indexOf(word) > 0 ||
-        customer.comment.indexOf(word) > 0
+        customer.name.indexOf(word) >= 0 ||
+        customer.email.indexOf(word) >= 0 ||
+        customer.tel.indexOf(word) >= 0 ||
+        customer.address.indexOf(word) >= 0 ||
+        customer.comment.indexOf(word) >= 0
       }
       sender ! FindResult(result)
     case FindOne(id) =>
@@ -86,8 +100,10 @@ class CustomerStorageCache extends Actor {
 /**
   * Created by jkugi_000 on 2015/12/09.
   */
-class CustomerPersistentStorage(val customerRepository: CustomerRepository) extends Actor with UsesConnection[Nom] {
+class CustomerPersistentStorage extends Actor with UsesConnection[Nom] {
   import CustomerStorage._
+
+  lazy val customerRepository: CustomerRepository = implicitly[Global].injecor.getInstance(classOf[CustomerRepository])
 
   val logger: LoggingAdapter = Logging(context.system, getClass)
 

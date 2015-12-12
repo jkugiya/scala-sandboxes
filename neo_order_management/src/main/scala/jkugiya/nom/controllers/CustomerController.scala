@@ -5,13 +5,13 @@ import akka.event.{Logging, LoggingAdapter}
 import akka.http.scaladsl.model.StatusCodes.Redirection
 import akka.http.scaladsl.model._
 import akka.http.scaladsl.server.Directives._
-import akka.http.scaladsl.server.Route
+import akka.http.scaladsl.server.{StandardRoute, Route}
 import akka.stream.{ActorMaterializer, Materializer}
 import com.google.inject.Inject
 import jkugiya.nom.models.entity.Customer
 import jkugiya.nom.models.{ConcreteMapper, Mappers}
 import jkugiya.nom.models.dto.customer.{RegisterCustomerDTO, SearchCondition, UpdateCustomerDTO}
-import jkugiya.nom.models.service.CustomerService
+import jkugiya.nom.models.service.{Result, CustomerService}
 import jkugiya.nom.utils.Global
 import jkugiya.nom.views
 
@@ -54,16 +54,18 @@ trait CustomerController {
       pathEnd {
         get {
           parameter('word).as(SearchCondition) { condition =>
-            val customers = customerService.search(condition)
-            completeAsHtml(views.html.customerSearch(condition.word, customers.right.get).body)
+            handleResult(customerService.search(condition)) { customers =>
+              completeAsHtml(views.html.customerSearch(condition.word, customers).body)
+            }
           }
         } ~
           post {
             // companionオブジェクトにメソッド定義するとこんな書き方をしないといけない。
             // 言語がエンハンスされることを期待、とのこと。
             formFields('name, 'email, 'tel, 'address, 'comment).as((RegisterCustomerDTO.apply _)) { condition =>
-              customerService.register(condition)
-              redirect("/customers", StatusCodes.MovedPermanently)
+              handleResult(customerService.register(condition)) { _ =>
+                redirect("/customers", StatusCodes.MovedPermanently)
+              }
             }
           }
       } ~
@@ -80,21 +82,30 @@ trait CustomerController {
         path(LongNumber) { customerId =>
           (put | parameter('method ! "put")) {
             formFields('id ? customerId, 'name, 'email, 'tel, 'address, 'comment).as(UpdateCustomerDTO) { condition =>
-              customerService.update(condition)
-              redirect("/customers", StatusCodes.MovedPermanently)
+              handleResult(customerService.update(condition)) { _ =>
+                redirect("/customers", StatusCodes.MovedPermanently)
+              }
             }
           } ~
             (delete | parameter('method ! "delete")) {
-              customerService.deleteCustomer(customerId)
-              redirect("/customers", StatusCodes.MovedPermanently)
+              handleResult(customerService.deleteCustomer(customerId)) { _ =>
+                redirect("/customers", StatusCodes.MovedPermanently)
+              }
             } ~
             get {
-              val result = customerService.findCustomer(customerId)
-              val dto = mappers.map[Customer, UpdateCustomerDTO](result.right.get) // TODO エレガントに
-              completeAsHtml(views.html.customerUpdateForm(dto).body)
+              handleResult(customerService.findCustomer(customerId)) { customer =>
+                val dto = mappers.map[Customer, UpdateCustomerDTO](customer) // TODO エレガントに
+                completeAsHtml(views.html.customerUpdateForm(dto).body)
+              }
             }
         }
     }
+  }
+  def handleResult[A](result: Result[A])(f: A => StandardRoute) = result match {
+    case Right(a) => f(a)
+    case Left(error) =>
+      error.cause.fold(logger.error(error.message))(t => logger.error(t, error.message))
+      complete(error.message)
   }
 }
 

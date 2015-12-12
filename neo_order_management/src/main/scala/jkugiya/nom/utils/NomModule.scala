@@ -4,7 +4,7 @@ import akka.actor.ActorSystem
 import com.google.inject.{Scope, Injector, AbstractModule, Singleton}
 import jkugiya.nom.controllers.{CustomerControllerImpl, CustomerController}
 import jkugiya.nom.models.repository.{CustomerRepositoryImpl, CustomerRepository}
-import jkugiya.nom.models.service.{CustomerServiceImpl, CustomerService}
+import jkugiya.nom.models.service.{CustomerStorage, CustomerServiceImpl, CustomerService}
 import jkugiya.nom.utils.neo4j.{ConnectionImpl, Nom, Connection}
 import org.anormcypher.Neo4jREST
 import play.api.libs.ws._
@@ -27,6 +27,7 @@ object NomModule {
       )
 
       val actorSystem = ActorSystem("nom_order_management")
+      actorSystem.actorOf(CustomerStorage.props(), "customerStorage")
       bind(classOf[ActorSystem]).toInstance(actorSystem)
 
       val databaseExecutionContext = scala.concurrent.ExecutionContext.Implicits.global// TODO
@@ -34,8 +35,7 @@ object NomModule {
 
       bind(classOf[CustomerRepository]).toInstance(CustomerRepositoryImpl)
 
-      // たまたまCustomerRepositoryImplがobjectで宣言可能だからよいが、依存性の複雑なクラスだったらキツい。
-      // Actorを使う場合、
+      // Actorを使う場合、Interfaceが同じで実装の異なるクラスがたくさんできるのでこの方式のDIはしんどいかも
       bind(classOf[CustomerService])
         .toInstance(new CustomerServiceImpl(
           actorSystem

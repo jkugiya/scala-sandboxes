@@ -90,9 +90,9 @@ trait CustomerService extends UsesConnection[Nom] {
 
 class CustomerServiceImpl (actorSystem: ActorSystem) extends CustomerService  {
   lazy val customerStorageGateway =
-    Await.result(actorSystem.actorSelection("/customerStorage/gateway").resolveOne(), Duration.Inf)
- lazy val customerStorageCache =
-   Await.result(actorSystem.actorSelection("/customerStorage/cache").resolveOne(), Duration.Inf)
+    Await.result(actorSystem.actorSelection("/user/customerStorage/writingGateway").resolveOne(), Duration.Inf)
+  lazy val customerStorageCache =
+   Await.result(actorSystem.actorSelection("/user/customerStorage/cache").resolveOne(), Duration.Inf)
   import scala.concurrent.duration._
   override implicit val timeout: Timeout = 3.seconds// TODO DI
   override implicit val ec: ExecutionContext = scala.concurrent.ExecutionContext.Implicits.global// TODO FIX
