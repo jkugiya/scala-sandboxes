@@ -30,7 +30,7 @@ trait CustomerController {
 
   def completeAsHtml(body: String) = {
     complete(HttpResponse(
-      entity = HttpEntity(ContentType(MediaTypes.`text/html`), body)
+      entity = HttpEntity(ContentType(MediaTypes.`text/html`, HttpCharsets.`UTF-8`), body)
     ))
   }
 
