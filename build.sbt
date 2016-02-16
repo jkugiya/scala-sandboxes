@@ -1,6 +1,3 @@
-
-
-
 lazy val commonSettings = Seq(
   organization := "jkugiya",
   scalaVersion := "2.11.7",
@@ -11,7 +8,7 @@ lazy val commonSettings = Seq(
   ),
   libraryDependencies ++= Seq(
   "com.typesafe.akka" % "akka-stream-experimental_2.11" % "2.0.3",
-    "com.typesafe.akka" % "akka-http-core-experimental_2.11" % "2.0.3",
+  "com.typesafe.akka" % "akka-http-core-experimental_2.11" % "2.0.3",
   "com.typesafe.akka" % "akka-http-experimental_2.11" % "2.0.3",
   "com.typesafe.akka" % "akka-http-testkit-experimental_2.11" % "2.0.3",
   "com.google.inject" % "guice" % "4.0",
@@ -29,4 +26,7 @@ lazy val neo_order_management = project
   .enablePlugins(SbtTwirl)
 
 lazy val di_examples = project
+  .settings(commonSettings: _*)
+
+lazy val actor_bp = project
   .settings(commonSettings: _*)
