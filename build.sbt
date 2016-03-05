@@ -1,6 +1,3 @@
-
-
-
 lazy val commonSettings = Seq(
   organization := "jkugiya",
   scalaVersion := "2.11.7",
@@ -10,17 +7,23 @@ lazy val commonSettings = Seq(
     "Typesafe Releases" at "http://repo.typesafe.com/typesafe/releases/"
   ),
   libraryDependencies ++= Seq(
+  "com.typesafe.akka" % "akka-cluster_2.11" % "2.3.13",
   "com.typesafe.akka" % "akka-stream-experimental_2.11" % "2.0.3",
-    "com.typesafe.akka" % "akka-http-core-experimental_2.11" % "2.0.3",
+  "com.typesafe.akka" % "akka-http-core-experimental_2.11" % "2.0.3",
   "com.typesafe.akka" % "akka-http-experimental_2.11" % "2.0.3",
   "com.typesafe.akka" % "akka-http-testkit-experimental_2.11" % "2.0.3",
   "com.google.inject" % "guice" % "4.0",
-  "org.anormcypher" %% "anormcypher" % "0.8.x",
+  "org.anormcypher" %% "anormcypher" % "0.8.1",
+  "com.github.pathikrit" %% "better-files" % "2.15.0",
   "io.spray" %%  "spray-json" % "1.3.2",
   "org.mockito" % "mockito-core" % "1.10.19" % "test",
   "org.scalatest" %% "scalatest" % "2.2.4" % "test"))
 
 lazy val twirl_sample = project
+  .settings(commonSettings: _*)
+  .enablePlugins(SbtTwirl)
+
+lazy val active_passive = project
   .settings(commonSettings: _*)
   .enablePlugins(SbtTwirl)
 
